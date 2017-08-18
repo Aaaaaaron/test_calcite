@@ -1,20 +1,16 @@
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.util.SqlVisitor;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
 /*
 select a, b from t, (select * from tt).要遍历拿到 t和相应的 select, 但是不能拿到子查询里面的 tt,
@@ -29,17 +25,25 @@ FromTableVisitor 里面的 visit(SqlCall call) 就可以 handle 整个 sql 的�
 上面说的也不对 有 bug 的
 
 要给定一个 table 再利用这个 visitor, 针对给定的 table, 每当遇到 select 先入栈, 然后找id == table 找到了出栈, 因为一个 select 不会 from 一个相同的表两次.
- */
+
+拿到所有 table 对应的select node,
+
+"select a, b from ttt join (select * from (select * from t)), tt where c in (select * from tt) and d > 10"
+
+ttt:select a, b from ttt join (select * from (select * from t)), tt where c in (select * from tt) and d > 10
+tt:select a, b from ttt join (select * from (select * from t)), tt where c in (select * from tt) and d > 10
+t:select * from t
+tt:select * from tt
+*/
 public class SelectVisitor implements SqlVisitor<SqlNode> {
-    private List<Pair<SqlNode, SqlNode>> tableWithSelect;
-    private Stack<SqlNode> selects = new Stack<>();
+    private List<SqlNode> selects;
 
     SelectVisitor() {
-        this.tableWithSelect = new ArrayList<>();
+        this.selects = new ArrayList<>();
     }
 
-    List<Pair<SqlNode, SqlNode>> getSelectHasTable() {
-        return tableWithSelect;
+    List<SqlNode> getSelectHasTable() {
+        return selects;
     }
 
     @Override
@@ -58,18 +62,8 @@ public class SelectVisitor implements SqlVisitor<SqlNode> {
 
     @Override
     public SqlNode visit(SqlCall call) {
-
-        if (call instanceof SqlBasicCall) {
-            SqlBasicCall node = (SqlBasicCall) call;
-            return node.getOperands()[0].accept(this);
-        }
-        if (call instanceof SqlJoin) {
-            SqlJoin node = (SqlJoin) call;
-            node.getLeft().accept(this);
-            node.getRight().accept(this);
-            return null;
-        }
         if (call instanceof SqlSelect) {
+//            SqlSelect select = (SqlSelect) call;
             selects.add(call);
         }
         for (SqlNode operand : call.getOperandList()) {
@@ -82,7 +76,6 @@ public class SelectVisitor implements SqlVisitor<SqlNode> {
 
     @Override
     public SqlNode visit(SqlIdentifier id) {
-        tableWithSelect.add(Pair.<SqlNode, SqlNode>of(id, selects.pop()));
         return null;
     }
 

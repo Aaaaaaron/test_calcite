@@ -1,6 +1,5 @@
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Set;
@@ -21,7 +20,7 @@ public class Main {
 
         SelectVisitor sv = new SelectVisitor();
         parse3.accept(sv);
-        List<Pair<SqlNode, SqlNode>> selectHasTable = sv.getSelectHasTable();
+//        List<Pair<SqlNode, SqlNode>> selectHasTable = sv.getSelectHasTable();
 
 //        Set<String> allSQLTblAndCol = getAllSQLTblAndCol(sql3);
 
