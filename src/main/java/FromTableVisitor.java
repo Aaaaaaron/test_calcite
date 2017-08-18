@@ -1,3 +1,4 @@
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -38,7 +39,9 @@ public class FromTableVisitor implements SqlVisitor<SqlNode> {
     public SqlNode visit(SqlCall call) {
         if (call instanceof SqlBasicCall) {
             SqlBasicCall node = (SqlBasicCall) call;
-            node.getOperands()[0].accept(this);
+            if (node.getOperator() instanceof SqlAsOperator) {
+                node.getOperands()[0].accept(this);
+            }
             return null;
         }
         if (call instanceof SqlJoin) {
